@@ -3,7 +3,7 @@ import {
   Grid3X3, LayoutGrid, Maximize2, ArrowLeft, Instagram, Twitter, 
   Facebook, Youtube, ExternalLink, Sparkles, ArrowUp, 
   Loader2, Mail, Phone, Handshake, Cpu, Users, Edit, 
-  Download, RotateCcw, Plus, Trash2, X, Type, AtSign, Music, Globe
+  Download, RotateCcw, Plus, Trash2, X, Type, AtSign, Music, Globe, Save
 } from 'lucide-react';
 
 /* ==========================================================================
@@ -129,7 +129,7 @@ const INITIAL_ALBUMS = [
     "thumbnail": "https://drive.google.com/file/d/1mw28agpWosgl3TutXeiV5YIf5xKDWe9e/view?usp=drive_link",
     "embedUrl": "",
     "embedPadding": "100%",
-    "embedTitle": "ádas"
+    "embedTitle": ""
   },
   {
     "id": 5,
@@ -166,7 +166,6 @@ const INITIAL_FONTS = {};
    PHẦN 2: LOGIC ỨNG DỤNG (CORE LOGIC)
    ========================================================================== */
 
-// Từ điển giao diện tĩnh (Static UI Labels)
 const UI_LABELS = {
   vi: { view: "Chế độ xem", loading: "Đang tải", endOf: "Hết danh mục", viewProject: "Xem dự án", backToGallery: "Quay lại thư viện", copyright: "BẢN QUYỀN", designedBy: "THIẾT KẾ BỞI SONCREATIVESTUDIO", viewOriginal: "Xem thiết kế gốc", by: "bởi", facebookPage: "Fanpage Facebook" },
   en: { view: "View", loading: "Loading", endOf: "End of", viewProject: "View Project", backToGallery: "Back to Gallery", copyright: "COPYRIGHT", designedBy: "DESIGNED BY SONCREATIVESTUDIO", viewOriginal: "View Original Design", by: "by", facebookPage: "Facebook Fanpage" }
@@ -180,8 +179,7 @@ const optimizeGoogleDriveLink = (url) => {
   return url;
 };
 
-// Component Input nâng cấp
-const EditorInput = ({ label, value, onChange, type = "text", placeholder = "", fontKey, currentFont, onFontUpload }) => {
+const EditorInput = ({ label, value, onChange, type = "text", placeholder = "", fontKey, currentFont, onFontUpload, helpText }) => {
   return (
     <div className="mb-4">
       <div className="flex justify-between items-end mb-1">
@@ -208,13 +206,36 @@ const EditorInput = ({ label, value, onChange, type = "text", placeholder = "", 
       ) : (
         <input type={type} className="w-full bg-white border border-stone-300 rounded p-2 text-sm focus:border-orange-500 focus:outline-none" value={value || ""} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
       )}
+      {helpText && (
+        <div className="mt-1 text-[10px] text-stone-500 bg-stone-100 p-2 rounded">
+          {helpText}
+        </div>
+      )}
     </div>
   );
 };
 
-const EditorArrayInput = ({ label, items, onChange }) => (
+const EditorArrayInput = ({ label, items, onChange, fontKey, currentFont, onFontUpload }) => (
   <div className="mb-4">
-    <label className="block text-[10px] font-bold uppercase tracking-widest text-stone-500 mb-2">{label}</label>
+    <div className="flex justify-between items-end mb-2">
+       <label className="block text-[10px] font-bold uppercase tracking-widest text-stone-500">{label}</label>
+       {onFontUpload && (
+          <div className="relative group">
+            <input 
+              type="file" 
+              accept=".ttf,.otf,.woff,.woff2" 
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              onChange={(e) => {
+                const file = e.target.files[0];
+                if (file) onFontUpload(fontKey, file);
+              }}
+            />
+            <button className="text-[9px] flex items-center gap-1 text-stone-400 hover:text-orange-600 bg-stone-100 hover:bg-orange-50 px-2 py-0.5 rounded transition-colors" title="Tải Font chữ cho danh sách này">
+              <Type size={10} /> {currentFont ? "Đã đổi Font" : "Đổi Font List"}
+            </button>
+          </div>
+        )}
+    </div>
     <div className="space-y-2">
       {items.map((item, index) => (
         <div key={index} className="flex gap-2">
@@ -282,8 +303,8 @@ export default function App() {
   const ui = UI_LABELS[lang];
   const content = config[lang] || config.vi; // Fallback to VI if something missing
   
-  // Logic Masonry Grid & Infinite Scroll
-  const fullAlbumsList = Array.from({ length: 30 }).map((_, i) => ({ ...albums[i % albums.length], id: i + 1, title: `${albums[i % albums.length].title} ${i >= albums.length ? `(Copy ${i})` : ''}` }));
+  // Logic Masonry Grid & Infinite Scroll - Đã loại bỏ Infinity View
+  const fullAlbumsList = albums; 
   const categories = ["ALL", ...new Set(albums.map(a => a.category))];
 
   useEffect(() => {
@@ -320,25 +341,10 @@ export default function App() {
 
   useEffect(() => {
     const filtered = activeCategory === "ALL" ? fullAlbumsList : fullAlbumsList.filter(a => a.category === activeCategory);
-    setVisibleAlbums(filtered.slice(0, 9));
-    setHasMore(filtered.length > 9);
-    setPage(1);
+    // Hiển thị toàn bộ, không cắt bớt để tránh lỗi scroll
+    setVisibleAlbums(filtered);
+    setHasMore(false); // Tắt loading spinner vì không còn infinity scroll
   }, [activeCategory, albums]);
-
-  const loadMore = () => {
-    if (!hasMore) return;
-    const filtered = activeCategory === "ALL" ? fullAlbumsList : fullAlbumsList.filter(a => a.category === activeCategory);
-    const nextItems = filtered.slice(0, (page + 1) * 9);
-    setVisibleAlbums(nextItems);
-    setHasMore(nextItems.length < filtered.length);
-    setPage(prev => prev + 1);
-  };
-
-  useEffect(() => {
-    const handleScroll = () => { if ((window.innerHeight + window.scrollY) >= document.documentElement.scrollHeight - 500) loadMore(); };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [page, hasMore, activeCategory, albums]);
 
   const handleDownloadCode = () => {
     const fileContent = `import React, { useState, useEffect } from 'react';
@@ -346,7 +352,7 @@ import {
   Grid3X3, LayoutGrid, Maximize2, ArrowLeft, Instagram, Twitter, 
   Facebook, Youtube, ExternalLink, Sparkles, ArrowUp, 
   Loader2, Mail, Phone, Handshake, Cpu, Users, Edit, 
-  Download, RotateCcw, Plus, Trash2, X, Type, AtSign, Music, Globe
+  Download, RotateCcw, Plus, Trash2, X, Type, AtSign, Music, Globe, Save
 } from 'lucide-react';
 
 /* ==========================================================================
@@ -371,7 +377,7 @@ ${LOGIC_CODE_TEMPLATE}`;
     a.href = url;
     a.download = 'App.jsx';
     a.click();
-    alert("Đã lưu file App.jsx mới! \nHãy copy đè lên file cũ.");
+    alert("Đã lưu & tải xuống file App.jsx mới! \nHãy copy đè lên file cũ.");
   };
 
   return (
@@ -386,9 +392,9 @@ ${LOGIC_CODE_TEMPLATE}`;
         .animate-spin-slow { animation: spin-slow 35s linear infinite; }
       `}</style>
 
-      {/* BACKGROUND TRỐNG ĐỒNG (GIỮ NGUYÊN) */}
+      {/* BACKGROUND TRỐNG ĐỒNG (Updated Source) */}
       <div className="fixed inset-0 z-0 flex items-center justify-center pointer-events-none overflow-hidden">
-        <img src="https://i.ibb.co/PzskMtYr/Anhpng-com-TR-NG-NG-02-Custom.png" alt="Trong Dong Background" className="w-[120vw] md:w-[80vw] max-w-[900px] animate-spin-slow opacity-15 mix-blend-multiply" />
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Ngoc_Lu_drum_surface.svg/1024px-Ngoc_Lu_drum_surface.svg.png" alt="Trong Dong Background" className="w-[120vw] md:w-[80vw] max-w-[900px] animate-spin-slow opacity-15 mix-blend-multiply" />
       </div>
 
       {/* EDITOR BUTTON */}
@@ -401,7 +407,9 @@ ${LOGIC_CODE_TEMPLATE}`;
         <div className="fixed top-0 left-0 bottom-0 w-full md:w-[450px] bg-white z-40 shadow-2xl border-r border-stone-200 overflow-y-auto animate-in slide-in-from-left duration-300 font-sans">
           <div className="p-4 bg-stone-900 text-white sticky top-0 z-10 flex justify-between items-center">
             <h2 className="font-bold uppercase tracking-widest flex items-center gap-2"><Edit size={16}/> CMS Editor</h2>
-            <button onClick={handleDownloadCode} className="bg-orange-600 hover:bg-orange-700 px-3 py-1 rounded text-xs font-bold flex items-center gap-1 animate-pulse"><Download size={12}/> TẢI CODE APP.JSX</button>
+            <button onClick={handleDownloadCode} className="bg-orange-600 hover:bg-orange-700 px-3 py-1.5 rounded text-[10px] font-bold flex items-center gap-1 animate-pulse shadow-lg border border-orange-400">
+               <Save size={14}/> LƯU & TẢI CODE
+            </button>
           </div>
           <div className="flex border-b border-stone-200 sticky top-14 bg-white z-10 text-[10px] font-bold uppercase tracking-widest text-stone-400">
             <button onClick={() => setActiveTab('common')} className={`flex-1 py-3 hover:text-orange-600 ${activeTab === 'common' ? 'text-orange-600 border-b-2 border-orange-600' : ''}`}>CHUNG</button>
@@ -413,16 +421,16 @@ ${LOGIC_CODE_TEMPLATE}`;
           <div className="p-6 pb-20 space-y-6">
             {activeTab === 'common' && (
               <>
-                <h3 className="text-xs font-bold uppercase mb-4 text-orange-600">Thông tin chung (Dùng cho cả 2 ngôn ngữ)</h3>
+                <h3 className="text-xs font-bold uppercase mb-4 text-orange-600">Thông tin chung</h3>
                 <EditorInput label="Tên Web" value={config.common.siteName} onChange={(v) => setConfig({...config, common: {...config.common, siteName: v}})} fontKey="siteName" currentFont={customFonts['CustomFont_siteName']} onFontUpload={handleFontUpload}/>
                 <EditorInput label="Vai trò" value={config.common.role} onChange={(v) => setConfig({...config, common: {...config.common, role: v}})} fontKey="role" currentFont={customFonts['CustomFont_role']} onFontUpload={handleFontUpload}/>
                 <EditorInput label="Footer Credit" value={config.common.footerCredit} onChange={(v) => setConfig({...config, common: {...config.common, footerCredit: v}})} fontKey="footerCredit" currentFont={customFonts['CustomFont_footerCredit']} onFontUpload={handleFontUpload}/>
                 
                 <div className="border-t pt-4">
                   <h3 className="text-xs font-bold uppercase mb-4 text-orange-600">Liên hệ & Mạng xã hội</h3>
-                  <EditorInput label="Email" value={config.common.contact.email} onChange={(v) => setConfig({...config, common: {...config.common, contact: {...config.common.contact, email: v}}})} />
-                  <EditorInput label="Phone" value={config.common.contact.phone} onChange={(v) => setConfig({...config, common: {...config.common, contact: {...config.common.contact, phone: v}}})} />
-                  <EditorInput label="Facebook Cá nhân" value={config.common.contact.facebookLink} onChange={(v) => setConfig({...config, common: {...config.common, contact: {...config.common.contact, facebookLink: v}}})} />
+                  <EditorInput label="Email" value={config.common.contact.email} onChange={(v) => setConfig({...config, common: {...config.common, contact: {...config.common.contact, email: v}}})} fontKey="contactEmail" currentFont={customFonts['CustomFont_contactEmail']} onFontUpload={handleFontUpload} />
+                  <EditorInput label="Phone" value={config.common.contact.phone} onChange={(v) => setConfig({...config, common: {...config.common, contact: {...config.common.contact, phone: v}}})} fontKey="contactPhone" currentFont={customFonts['CustomFont_contactPhone']} onFontUpload={handleFontUpload} />
+                  <EditorInput label="Facebook Cá nhân" value={config.common.contact.facebookLink} onChange={(v) => setConfig({...config, common: {...config.common, contact: {...config.common.contact, facebookLink: v}}})} fontKey="contactFb" currentFont={customFonts['CustomFont_contactFb']} onFontUpload={handleFontUpload} />
                   
                   <div className="grid grid-cols-2 gap-2 bg-stone-50 p-3 rounded">
                      {Object.keys(config.common.socials).map(k => (
@@ -430,43 +438,51 @@ ${LOGIC_CODE_TEMPLATE}`;
                      ))}
                   </div>
                   <div className="mt-4">
-                    <EditorArrayInput label="Danh sách Đối tác (Partners)" items={config.common.partners} onChange={(v) => setConfig({...config, common: {...config.common, partners: v}})} />
+                    <EditorArrayInput label="Danh sách Đối tác (Partners)" items={config.common.partners} onChange={(v) => setConfig({...config, common: {...config.common, partners: v}})} fontKey="partnersList" currentFont={customFonts['CustomFont_partnersList']} onFontUpload={handleFontUpload} />
                   </div>
                 </div>
               </>
             )}
 
-            {/* TAB EDITOR CHO TIẾNG VIỆT */}
             {activeTab === 'vi' && (
               <>
                 <h3 className="text-xs font-bold uppercase mb-4 text-orange-600">Nội dung Tiếng Việt</h3>
                 <EditorInput label="Slogan (Tagline)" value={config.vi.tagline} onChange={(v) => setConfig({...config, vi: {...config.vi, tagline: v}})} type="textarea" fontKey="tagline" currentFont={customFonts['CustomFont_tagline']} onFontUpload={handleFontUpload}/>
-                <EditorInput label="Tiêu đề Giới thiệu" value={config.vi.about.title} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, title: v}}})} />
+                <EditorInput label="Tiêu đề Giới thiệu" value={config.vi.about.title} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, title: v}}})} fontKey="vi_aboutTitle" currentFont={customFonts['CustomFont_vi_aboutTitle']} onFontUpload={handleFontUpload} />
                 <EditorInput label="Trích dẫn (Quote)" value={config.vi.about.quote} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, quote: v}}})} type="textarea" fontKey="aboutQuote" currentFont={customFonts['CustomFont_aboutQuote']} onFontUpload={handleFontUpload}/>
                 <EditorInput label="Mô tả chi tiết" value={config.vi.about.description} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, description: v}}})} type="textarea" fontKey="aboutDesc" currentFont={customFonts['CustomFont_aboutDesc']} onFontUpload={handleFontUpload}/>
-                <EditorInput label="Tiêu đề Tech Stack" value={config.vi.about.techStackTitle} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, techStackTitle: v}}})} />
-                <EditorArrayInput label="Danh sách Tech" items={config.vi.about.techStack} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, techStack: v}}})} />
-                <EditorInput label="Tiêu đề Hợp tác" value={config.vi.about.collabTitle} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, collabTitle: v}}})} />
-                <EditorInput label="Intro Hợp tác" value={config.vi.about.collabIntro} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, collabIntro: v}}})} />
-                <EditorArrayInput label="Mục Hợp tác" items={config.vi.about.collabList} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, collabList: v}}})} />
-                <EditorInput label="Nút Liên hệ" value={config.vi.about.bookBtn} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, bookBtn: v}}})} />
+                
+                <EditorInput label="Tiêu đề Tech Stack" value={config.vi.about.techStackTitle} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, techStackTitle: v}}})} fontKey="techTitle" currentFont={customFonts['CustomFont_techTitle']} onFontUpload={handleFontUpload} />
+                <EditorArrayInput label="Danh sách Tech" items={config.vi.about.techStack} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, techStack: v}}})} fontKey="techList" currentFont={customFonts['CustomFont_techList']} onFontUpload={handleFontUpload} />
+                
+                <EditorInput label="Tiêu đề Hợp tác" value={config.vi.about.collabTitle} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, collabTitle: v}}})} fontKey="collabTitle" currentFont={customFonts['CustomFont_collabTitle']} onFontUpload={handleFontUpload} />
+                <EditorInput label="Intro Hợp tác" value={config.vi.about.collabIntro} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, collabIntro: v}}})} fontKey="collabIntro" currentFont={customFonts['CustomFont_collabIntro']} onFontUpload={handleFontUpload} />
+                <EditorArrayInput label="Mục Hợp tác" items={config.vi.about.collabList} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, collabList: v}}})} fontKey="collabList" currentFont={customFonts['CustomFont_collabList']} onFontUpload={handleFontUpload} />
+                
+                <EditorInput label="Tiêu đề Đối tác" value={config.vi.partnersTitle} onChange={(v) => setConfig({...config, vi: {...config.vi, partnersTitle: v}})} fontKey="vi_partnersTitle" currentFont={customFonts['CustomFont_vi_partnersTitle']} onFontUpload={handleFontUpload} />
+                <EditorInput label="Tiêu đề Kết nối" value={config.vi.connectTitle} onChange={(v) => setConfig({...config, vi: {...config.vi, connectTitle: v}})} fontKey="vi_connectTitle" currentFont={customFonts['CustomFont_vi_connectTitle']} onFontUpload={handleFontUpload} />
+                <EditorInput label="Nút Liên hệ" value={config.vi.about.bookBtn} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, bookBtn: v}}})} fontKey="bookBtn" currentFont={customFonts['CustomFont_bookBtn']} onFontUpload={handleFontUpload} />
               </>
             )}
 
-            {/* TAB EDITOR CHO TIẾNG ANH */}
             {activeTab === 'en' && (
               <>
                 <h3 className="text-xs font-bold uppercase mb-4 text-orange-600">English Content</h3>
                 <EditorInput label="Tagline" value={config.en.tagline} onChange={(v) => setConfig({...config, en: {...config.en, tagline: v}})} type="textarea" fontKey="tagline" currentFont={customFonts['CustomFont_tagline']} onFontUpload={handleFontUpload}/>
-                <EditorInput label="About Title" value={config.en.about.title} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, title: v}}})} />
+                <EditorInput label="About Title" value={config.en.about.title} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, title: v}}})} fontKey="en_aboutTitle" currentFont={customFonts['CustomFont_en_aboutTitle']} onFontUpload={handleFontUpload} />
                 <EditorInput label="Quote" value={config.en.about.quote} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, quote: v}}})} type="textarea" fontKey="aboutQuote" currentFont={customFonts['CustomFont_aboutQuote']} onFontUpload={handleFontUpload}/>
                 <EditorInput label="Description" value={config.en.about.description} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, description: v}}})} type="textarea" fontKey="aboutDesc" currentFont={customFonts['CustomFont_aboutDesc']} onFontUpload={handleFontUpload}/>
-                <EditorInput label="Tech Stack Title" value={config.en.about.techStackTitle} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, techStackTitle: v}}})} />
-                <EditorArrayInput label="Tech List" items={config.en.about.techStack} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, techStack: v}}})} />
-                <EditorInput label="Collab Title" value={config.en.about.collabTitle} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, collabTitle: v}}})} />
-                <EditorInput label="Collab Intro" value={config.en.about.collabIntro} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, collabIntro: v}}})} />
-                <EditorArrayInput label="Collab List" items={config.en.about.collabList} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, collabList: v}}})} />
-                <EditorInput label="Book Button" value={config.en.about.bookBtn} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, bookBtn: v}}})} />
+                
+                <EditorInput label="Tech Stack Title" value={config.en.about.techStackTitle} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, techStackTitle: v}}})} fontKey="techTitle" currentFont={customFonts['CustomFont_techTitle']} onFontUpload={handleFontUpload} />
+                <EditorArrayInput label="Tech List" items={config.en.about.techStack} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, techStack: v}}})} fontKey="techList" currentFont={customFonts['CustomFont_techList']} onFontUpload={handleFontUpload} />
+                
+                <EditorInput label="Collab Title" value={config.en.about.collabTitle} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, collabTitle: v}}})} fontKey="collabTitle" currentFont={customFonts['CustomFont_collabTitle']} onFontUpload={handleFontUpload} />
+                <EditorInput label="Collab Intro" value={config.en.about.collabIntro} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, collabIntro: v}}})} fontKey="collabIntro" currentFont={customFonts['CustomFont_collabIntro']} onFontUpload={handleFontUpload} />
+                <EditorArrayInput label="Collab List" items={config.en.about.collabList} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, collabList: v}}})} fontKey="collabList" currentFont={customFonts['CustomFont_collabList']} onFontUpload={handleFontUpload} />
+                
+                <EditorInput label="Partners Title" value={config.en.partnersTitle} onChange={(v) => setConfig({...config, en: {...config.en, partnersTitle: v}})} fontKey="en_partnersTitle" currentFont={customFonts['CustomFont_en_partnersTitle']} onFontUpload={handleFontUpload} />
+                <EditorInput label="Connect Title" value={config.en.connectTitle} onChange={(v) => setConfig({...config, en: {...config.en, connectTitle: v}})} fontKey="en_connectTitle" currentFont={customFonts['CustomFont_en_connectTitle']} onFontUpload={handleFontUpload} />
+                <EditorInput label="Book Button" value={config.en.about.bookBtn} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, bookBtn: v}}})} fontKey="bookBtn" currentFont={customFonts['CustomFont_bookBtn']} onFontUpload={handleFontUpload} />
               </>
             )}
 
@@ -476,14 +492,23 @@ ${LOGIC_CODE_TEMPLATE}`;
                   <div key={album.id} className="bg-stone-50 p-3 rounded border border-stone-200 relative">
                     <button onClick={() => setAlbums(albums.filter((_, i) => i !== idx))} className="absolute top-2 right-2 text-stone-300 hover:text-red-500"><Trash2 size={16}/></button>
                     <span className="text-[9px] font-bold text-stone-400 uppercase mb-2 block">Album #{idx + 1}</span>
-                    <EditorInput label="Tiêu đề" value={album.title} onChange={(v) => { const newA = [...albums]; newA[idx].title = v; setAlbums(newA); }} />
-                    <EditorInput label="Danh mục" value={album.category} onChange={(v) => { const newA = [...albums]; newA[idx].category = v; setAlbums(newA); }} />
+                    <EditorInput label="Tiêu đề" value={album.title} onChange={(v) => { const newA = [...albums]; newA[idx].title = v; setAlbums(newA); }} fontKey={`albumTitle_${album.id}`} currentFont={customFonts[`CustomFont_albumTitle_${album.id}`]} onFontUpload={handleFontUpload} />
+                    <EditorInput label="Danh mục" value={album.category} onChange={(v) => { const newA = [...albums]; newA[idx].category = v; setAlbums(newA); }} fontKey={`albumCategory_${album.id}`} currentFont={customFonts[`CustomFont_albumCategory_${album.id}`]} onFontUpload={handleFontUpload} />
                     <EditorInput label="Thumbnail Link" value={album.thumbnail} onChange={(v) => { const newA = [...albums]; newA[idx].thumbnail = v; setAlbums(newA); }} />
                     <div className="p-2 bg-orange-50 rounded border border-orange-100 mt-2">
                         <EditorInput label="Canva Embed URL" value={album.embedUrl} placeholder="Link view?embed..." onChange={(v) => { const newA = [...albums]; newA[idx].embedUrl = v; setAlbums(newA); }} />
                         <div className="flex gap-2">
                            <div className="w-1/2"><EditorInput label="Tỷ lệ (VD: 150%)" value={album.embedPadding} onChange={(v) => { const newA = [...albums]; newA[idx].embedPadding = v; setAlbums(newA); }} /></div>
                            <div className="w-1/2"><EditorInput label="Title Frame" value={album.embedTitle} onChange={(v) => { const newA = [...albums]; newA[idx].embedTitle = v; setAlbums(newA); }} /></div>
+                        </div>
+                        <div className="mt-2 p-2 bg-white rounded text-[9px] text-stone-500 border border-stone-100">
+                           <p className="font-bold mb-1">ℹ️ Gợi ý Tỷ lệ (Padding):</p>
+                           <ul className="list-disc pl-4 space-y-0.5">
+                              <li>Dọc (Mobile/Poster): <b>150%</b></li>
+                              <li>Vuông: <b>100%</b></li>
+                              <li>Ngang (Slide/PC): <b>56.25%</b></li>
+                              <li>UltraWide (21:9): <b>42.85%</b></li>
+                           </ul>
                         </div>
                     </div>
                   </div>
@@ -539,13 +564,13 @@ ${LOGIC_CODE_TEMPLATE}`;
                    <img src={optimizeGoogleDriveLink(album.thumbnail)} alt={album.title} loading="lazy" className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"/>
                    <div className="absolute top-2 right-2 bg-black/50 text-white text-[9px] px-2 py-1 uppercase opacity-0 group-hover:opacity-100 transition-opacity">{ui.viewProject}</div>
                  </div>
-                 <h3 className="text-lg font-serif text-stone-900 group-hover:text-orange-700 transition-colors leading-tight">{album.title}</h3>
-                 <p className="text-[10px] font-sans font-bold tracking-widest text-orange-600 uppercase">{album.category}</p>
+                 <h3 className="text-lg font-serif text-stone-900 group-hover:text-orange-700 transition-colors leading-tight" style={getFontStyle(`albumTitle_${album.id}`)}>{album.title}</h3>
+                 <p className="text-[10px] font-sans font-bold tracking-widest text-orange-600 uppercase" style={getFontStyle(`albumCategory_${album.id}`)}>{album.category}</p>
                </div>
              ))}
           </div>
           <div className="py-12 text-center text-stone-400">
-            {hasMore ? <span className="flex justify-center items-center gap-2"><Loader2 className="animate-spin" size={16}/> {ui.loading}...</span> : <span className="text-[10px] tracking-widest uppercase">{ui.endOf} {activeCategory}</span>}
+            {visibleAlbums.length === 0 && <span className="text-[10px] tracking-widest uppercase">{ui.endOf} {activeCategory}</span>}
           </div>
         </main>
 
@@ -553,34 +578,34 @@ ${LOGIC_CODE_TEMPLATE}`;
           <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-16">
             <div className="space-y-10">
               <div>
-                <h2 className="text-4xl font-serif mb-6 text-stone-900">{content.about.title}</h2>
+                <h2 className="text-4xl font-serif mb-6 text-stone-900" style={getFontStyle(`${lang}_aboutTitle`)}>{content.about.title}</h2>
                 <p className="text-lg text-stone-600 font-serif italic" style={getFontStyle('aboutQuote')}>{content.about.quote}</p>
                 <p className="mt-4 text-stone-500 font-serif font-light text-sm leading-relaxed" style={getFontStyle('aboutDesc')}>{content.about.description}</p>
               </div>
               <div>
-                <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-orange-600 mb-4"><Cpu size={16}/> {content.about.techStackTitle}</h3>
-                <div className="flex flex-wrap gap-2">{content.about.techStack.map(tk => <span key={tk} className="px-3 py-1 bg-stone-100 text-stone-600 text-xs rounded-full border">{tk}</span>)}</div>
+                <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-orange-600 mb-4" style={getFontStyle('techTitle')}><Cpu size={16}/> {content.about.techStackTitle}</h3>
+                <div className="flex flex-wrap gap-2" style={getFontStyle('techList')}>{content.about.techStack.map(tk => <span key={tk} className="px-3 py-1 bg-stone-100 text-stone-600 text-xs rounded-full border">{tk}</span>)}</div>
               </div>
               <div>
-                 <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-orange-600 mb-4"><Handshake size={16}/> {content.about.collabTitle}</h3>
-                 <p className="text-stone-500 font-serif font-light mb-2">{content.about.collabIntro}</p>
-                 <ul className="list-disc list-inside text-stone-600 font-serif text-sm pl-2 space-y-1">{content.about.collabList.map((c, i) => <li key={i}>{c}</li>)}</ul>
+                 <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-orange-600 mb-4" style={getFontStyle('collabTitle')}><Handshake size={16}/> {content.about.collabTitle}</h3>
+                 <p className="text-stone-500 font-serif font-light mb-2" style={getFontStyle('collabIntro')}>{content.about.collabIntro}</p>
+                 <ul className="list-disc list-inside text-stone-600 font-serif text-sm pl-2 space-y-1" style={getFontStyle('collabList')}>{content.about.collabList.map((c, i) => <li key={i}>{c}</li>)}</ul>
               </div>
             </div>
             <div className="space-y-10">
               <div>
-                <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-orange-600 mb-6"><Users size={16}/> {content.about.partnersTitle}</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">{config.common.partners.map((p, i) => (<div key={i} className="h-16 flex items-center justify-center bg-stone-50 border border-stone-100 text-center p-2 text-xs font-serif font-bold text-stone-400 uppercase">{p}</div>))}</div>
+                <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-orange-600 mb-6" style={getFontStyle(`${lang}_partnersTitle`)}><Users size={16}/> {content.about.partnersTitle || content.partnersTitle}</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4" style={getFontStyle('partnersList')}>{config.common.partners.map((p, i) => (<div key={i} className="h-16 flex items-center justify-center bg-stone-50 border border-stone-100 text-center p-2 text-xs font-serif font-bold text-stone-400 uppercase">{p}</div>))}</div>
               </div>
               <div className="bg-stone-900 text-white p-8 rounded relative overflow-hidden">
                 <Sparkles className="absolute top-0 right-0 p-4 opacity-10" size={100}/>
-                <h3 className="text-2xl font-serif mb-6">{content.about.connectTitle}</h3>
+                <h3 className="text-2xl font-serif mb-6" style={getFontStyle(`${lang}_connectTitle`)}>{content.about.connectTitle || content.connectTitle}</h3>
                 <div className="space-y-4 font-serif font-light text-sm">
-                  <div className="flex items-center gap-3"><Mail size={16} className="text-orange-500"/><a href={`mailto:${config.common.contact.email}`}>{config.common.contact.email}</a></div>
-                  <div className="flex items-center gap-3"><Phone size={16} className="text-orange-500"/><span>{config.common.contact.phone}</span></div>
-                  <div className="flex items-center gap-3"><Facebook size={16} className="text-orange-500"/><a href={config.common.contact.facebookLink} target="_blank" rel="noopener noreferrer">{ui.facebookPage}</a></div>
+                  <div className="flex items-center gap-3"><Mail size={16} className="text-orange-500"/><a href={`mailto:${config.common.contact.email}`} style={getFontStyle('contactEmail')}>{config.common.contact.email}</a></div>
+                  <div className="flex items-center gap-3"><Phone size={16} className="text-orange-500"/><span style={getFontStyle('contactPhone')}>{config.common.contact.phone}</span></div>
+                  <div className="flex items-center gap-3"><Facebook size={16} className="text-orange-500"/><a href={config.common.contact.facebookLink} target="_blank" rel="noopener noreferrer" style={getFontStyle('contactFb')}>{ui.facebookPage}</a></div>
                 </div>
-                <button className="mt-8 w-full py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs uppercase tracking-widest">{content.about.bookBtn}</button>
+                <button className="mt-8 w-full py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs uppercase tracking-widest" style={getFontStyle('bookBtn')}>{content.about.bookBtn}</button>
               </div>
             </div>
           </div>
@@ -590,27 +615,5 @@ ${LOGIC_CODE_TEMPLATE}`;
           <p className="opacity-50">{ui.designedBy}</p>
         </footer>
       </div>
-
-      {/* MODAL ALBUM */}
-      {selectedAlbum && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white animate-in fade-in zoom-in-95 duration-300">
-           <div className="flex-none px-6 py-4 border-b flex justify-between items-center bg-white/95 backdrop-blur z-50">
-             <button onClick={() => setSelectedAlbum(null)} className="flex items-center gap-2 text-stone-600 hover:text-orange-600 group bg-stone-100 px-4 py-2 rounded-full">
-               <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform"/> <span className="text-xs font-bold uppercase tracking-widest">{ui.backToGallery}</span>
-             </button>
-             <div className="text-right hidden sm:block"><h4 className="text-sm font-bold">{selectedAlbum.title}</h4><p className="text-[10px] text-stone-400 uppercase tracking-widest">{selectedAlbum.category}</p></div>
-           </div>
-           <div className="flex-1 overflow-y-auto bg-stone-50 pt-10">
-             {selectedAlbum.embedUrl ? (
-               <EmbedAlbumFrame url={selectedAlbum.embedUrl} paddingInfo={selectedAlbum.embedPadding} title={selectedAlbum.embedTitle} siteName={config.common.siteName} />
-             ) : (
-               <div className="h-[50vh] flex flex-col items-center justify-center text-stone-400"><Sparkles size={48} className="mb-4 opacity-20"/><p className="italic">Nội dung đang cập nhật...</p></div>
-             )}
-           </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-const LOGIC_CODE_TEMPLATE = LOGIC_CODE_TEMPLATE_STRING;
+  `;
+};
