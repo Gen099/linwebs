@@ -148,14 +148,6 @@ const INITIAL_ALBUMS = [
     "embedUrl": "",
     "embedPadding": "100%",
     "embedTitle": ""
-  },
-  {
-    "id": 1764759430831,
-    "title": "New Album",
-    "category": "OTHERS",
-    "thumbnail": "",
-    "embedUrl": "",
-    "embedPadding": "100%"
   }
 ];
 
@@ -291,7 +283,7 @@ export default function App() {
   const [customFonts, setCustomFonts] = useState(INITIAL_FONTS);
 
   const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('common'); // common, vi, en, albums
+  const [activeTab, setActiveTab] = useState('common');
   const [columns, setColumns] = useState(3);
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [lang, setLang] = useState('vi');
@@ -301,9 +293,8 @@ export default function App() {
   const [hasMore, setHasMore] = useState(true);
   
   const ui = UI_LABELS[lang];
-  const content = config[lang] || config.vi; // Fallback to VI if something missing
+  const content = config[lang] || config.vi;
   
-  // Logic Masonry Grid & Infinite Scroll - Đã loại bỏ Infinity View
   const fullAlbumsList = albums; 
   const categories = ["ALL", ...new Set(albums.map(a => a.category))];
 
@@ -341,43 +332,13 @@ export default function App() {
 
   useEffect(() => {
     const filtered = activeCategory === "ALL" ? fullAlbumsList : fullAlbumsList.filter(a => a.category === activeCategory);
-    // Hiển thị toàn bộ, không cắt bớt để tránh lỗi scroll
     setVisibleAlbums(filtered);
-    setHasMore(false); // Tắt loading spinner vì không còn infinity scroll
+    setHasMore(false);
   }, [activeCategory, albums]);
 
   const handleDownloadCode = () => {
-    const fileContent = `import React, { useState, useEffect } from 'react';
-import { 
-  Grid3X3, LayoutGrid, Maximize2, ArrowLeft, Instagram, Twitter, 
-  Facebook, Youtube, ExternalLink, Sparkles, ArrowUp, 
-  Loader2, Mail, Phone, Handshake, Cpu, Users, Edit, 
-  Download, RotateCcw, Plus, Trash2, X, Type, AtSign, Music, Globe, Save
-} from 'lucide-react';
-
-/* ==========================================================================
-   PHẦN 1: DỮ LIỆU CẤU HÌNH & NỘI DUNG (EDITABLE)
-   ========================================================================== */
-
-const INITIAL_CONFIG = ${JSON.stringify(config, null, 2)};
-
-const INITIAL_ALBUMS = ${JSON.stringify(albums, null, 2)};
-
-// Font data (Base64)
-const INITIAL_FONTS = ${JSON.stringify(customFonts, null, 2)};
-
-/* ==========================================================================
-   PHẦN 2: LOGIC ỨNG DỤNG (CORE LOGIC)
-   ========================================================================== */
-${LOGIC_CODE_TEMPLATE}`;
-
-    const blob = new Blob([fileContent], { type: 'text/javascript' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'App.jsx';
-    a.click();
-    alert("Đã lưu & tải xuống file App.jsx mới! \nHãy copy đè lên file cũ.");
+    // Trong file tải xuống, chúng ta vô hiệu hóa khả năng tải xuống tiếp để tránh code quá phức tạp
+    alert("Đây là phiên bản đã tải xuống. Bạn hãy sử dụng code này cho website của mình.");
   };
 
   return (
@@ -387,233 +348,17 @@ ${LOGIC_CODE_TEMPLATE}`;
         @import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@300;400;500;600&display=swap');
         .font-serif { font-family: 'Playfair Display', serif; }
         .font-sans { font-family: 'Lato', sans-serif; }
-        /* Animation Trống Đồng */
         @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .animate-spin-slow { animation: spin-slow 35s linear infinite; }
       `}</style>
 
-      {/* BACKGROUND TRỐNG ĐỒNG (Updated Source) */}
+      {/* BACKGROUND TRỐNG ĐỒNG */}
       <div className="fixed inset-0 z-0 flex items-center justify-center pointer-events-none overflow-hidden">
         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Ngoc_Lu_drum_surface.svg/1024px-Ngoc_Lu_drum_surface.svg.png" alt="Trong Dong Background" className="w-[120vw] md:w-[80vw] max-w-[900px] animate-spin-slow opacity-15 mix-blend-multiply" />
       </div>
 
-      {/* EDITOR BUTTON */}
-      <button onClick={() => setIsEditorOpen(!isEditorOpen)} className="fixed bottom-8 left-8 z-50 bg-stone-900 text-white p-3 rounded-full shadow-2xl hover:bg-orange-600 transition-all hover:rotate-90" title="Chỉnh sửa nội dung">
-        {isEditorOpen ? <RotateCcw size={20}/> : <Edit size={20}/>}
-      </button>
-
-      {/* EDITOR PANEL */}
-      {isEditorOpen && (
-        <div className="fixed top-0 left-0 bottom-0 w-full md:w-[450px] bg-white z-40 shadow-2xl border-r border-stone-200 overflow-y-auto animate-in slide-in-from-left duration-300 font-sans">
-          <div className="p-4 bg-stone-900 text-white sticky top-0 z-10 flex justify-between items-center">
-            <h2 className="font-bold uppercase tracking-widest flex items-center gap-2"><Edit size={16}/> CMS Editor</h2>
-            <button onClick={handleDownloadCode} className="bg-orange-600 hover:bg-orange-700 px-3 py-1.5 rounded text-[10px] font-bold flex items-center gap-1 animate-pulse shadow-lg border border-orange-400">
-               <Save size={14}/> LƯU & TẢI CODE
-            </button>
-          </div>
-          <div className="flex border-b border-stone-200 sticky top-14 bg-white z-10 text-[10px] font-bold uppercase tracking-widest text-stone-400">
-            <button onClick={() => setActiveTab('common')} className={`flex-1 py-3 hover:text-orange-600 ${activeTab === 'common' ? 'text-orange-600 border-b-2 border-orange-600' : ''}`}>CHUNG</button>
-            <button onClick={() => setActiveTab('vi')} className={`flex-1 py-3 hover:text-orange-600 ${activeTab === 'vi' ? 'text-orange-600 border-b-2 border-orange-600' : ''}`}>VIỆT</button>
-            <button onClick={() => setActiveTab('en')} className={`flex-1 py-3 hover:text-orange-600 ${activeTab === 'en' ? 'text-orange-600 border-b-2 border-orange-600' : ''}`}>ANH</button>
-            <button onClick={() => setActiveTab('albums')} className={`flex-1 py-3 hover:text-orange-600 ${activeTab === 'albums' ? 'text-orange-600 border-b-2 border-orange-600' : ''}`}>ALBUMS</button>
-          </div>
-          
-          <div className="p-6 pb-20 space-y-6">
-            {activeTab === 'common' && (
-              <>
-                <h3 className="text-xs font-bold uppercase mb-4 text-orange-600">Thông tin chung</h3>
-                <EditorInput label="Tên Web" value={config.common.siteName} onChange={(v) => setConfig({...config, common: {...config.common, siteName: v}})} fontKey="siteName" currentFont={customFonts['CustomFont_siteName']} onFontUpload={handleFontUpload}/>
-                <EditorInput label="Vai trò" value={config.common.role} onChange={(v) => setConfig({...config, common: {...config.common, role: v}})} fontKey="role" currentFont={customFonts['CustomFont_role']} onFontUpload={handleFontUpload}/>
-                <EditorInput label="Footer Credit" value={config.common.footerCredit} onChange={(v) => setConfig({...config, common: {...config.common, footerCredit: v}})} fontKey="footerCredit" currentFont={customFonts['CustomFont_footerCredit']} onFontUpload={handleFontUpload}/>
-                
-                <div className="border-t pt-4">
-                  <h3 className="text-xs font-bold uppercase mb-4 text-orange-600">Liên hệ & Mạng xã hội</h3>
-                  <EditorInput label="Email" value={config.common.contact.email} onChange={(v) => setConfig({...config, common: {...config.common, contact: {...config.common.contact, email: v}}})} fontKey="contactEmail" currentFont={customFonts['CustomFont_contactEmail']} onFontUpload={handleFontUpload} />
-                  <EditorInput label="Phone" value={config.common.contact.phone} onChange={(v) => setConfig({...config, common: {...config.common, contact: {...config.common.contact, phone: v}}})} fontKey="contactPhone" currentFont={customFonts['CustomFont_contactPhone']} onFontUpload={handleFontUpload} />
-                  <EditorInput label="Facebook Cá nhân" value={config.common.contact.facebookLink} onChange={(v) => setConfig({...config, common: {...config.common, contact: {...config.common.contact, facebookLink: v}}})} fontKey="contactFb" currentFont={customFonts['CustomFont_contactFb']} onFontUpload={handleFontUpload} />
-                  
-                  <div className="grid grid-cols-2 gap-2 bg-stone-50 p-3 rounded">
-                     {Object.keys(config.common.socials).map(k => (
-                       <EditorInput key={k} label={k.toUpperCase()} value={config.common.socials[k]} onChange={(v) => setConfig({...config, common: {...config.common, socials: {...config.common.socials, [k]: v}}})} />
-                     ))}
-                  </div>
-                  <div className="mt-4">
-                    <EditorArrayInput label="Danh sách Đối tác (Partners)" items={config.common.partners} onChange={(v) => setConfig({...config, common: {...config.common, partners: v}})} fontKey="partnersList" currentFont={customFonts['CustomFont_partnersList']} onFontUpload={handleFontUpload} />
-                  </div>
-                </div>
-              </>
-            )}
-
-            {activeTab === 'vi' && (
-              <>
-                <h3 className="text-xs font-bold uppercase mb-4 text-orange-600">Nội dung Tiếng Việt</h3>
-                <EditorInput label="Slogan (Tagline)" value={config.vi.tagline} onChange={(v) => setConfig({...config, vi: {...config.vi, tagline: v}})} type="textarea" fontKey="tagline" currentFont={customFonts['CustomFont_tagline']} onFontUpload={handleFontUpload}/>
-                <EditorInput label="Tiêu đề Giới thiệu" value={config.vi.about.title} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, title: v}}})} fontKey="vi_aboutTitle" currentFont={customFonts['CustomFont_vi_aboutTitle']} onFontUpload={handleFontUpload} />
-                <EditorInput label="Trích dẫn (Quote)" value={config.vi.about.quote} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, quote: v}}})} type="textarea" fontKey="aboutQuote" currentFont={customFonts['CustomFont_aboutQuote']} onFontUpload={handleFontUpload}/>
-                <EditorInput label="Mô tả chi tiết" value={config.vi.about.description} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, description: v}}})} type="textarea" fontKey="aboutDesc" currentFont={customFonts['CustomFont_aboutDesc']} onFontUpload={handleFontUpload}/>
-                
-                <EditorInput label="Tiêu đề Tech Stack" value={config.vi.about.techStackTitle} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, techStackTitle: v}}})} fontKey="techTitle" currentFont={customFonts['CustomFont_techTitle']} onFontUpload={handleFontUpload} />
-                <EditorArrayInput label="Danh sách Tech" items={config.vi.about.techStack} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, techStack: v}}})} fontKey="techList" currentFont={customFonts['CustomFont_techList']} onFontUpload={handleFontUpload} />
-                
-                <EditorInput label="Tiêu đề Hợp tác" value={config.vi.about.collabTitle} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, collabTitle: v}}})} fontKey="collabTitle" currentFont={customFonts['CustomFont_collabTitle']} onFontUpload={handleFontUpload} />
-                <EditorInput label="Intro Hợp tác" value={config.vi.about.collabIntro} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, collabIntro: v}}})} fontKey="collabIntro" currentFont={customFonts['CustomFont_collabIntro']} onFontUpload={handleFontUpload} />
-                <EditorArrayInput label="Mục Hợp tác" items={config.vi.about.collabList} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, collabList: v}}})} fontKey="collabList" currentFont={customFonts['CustomFont_collabList']} onFontUpload={handleFontUpload} />
-                
-                <EditorInput label="Tiêu đề Đối tác" value={config.vi.partnersTitle} onChange={(v) => setConfig({...config, vi: {...config.vi, partnersTitle: v}})} fontKey="vi_partnersTitle" currentFont={customFonts['CustomFont_vi_partnersTitle']} onFontUpload={handleFontUpload} />
-                <EditorInput label="Tiêu đề Kết nối" value={config.vi.connectTitle} onChange={(v) => setConfig({...config, vi: {...config.vi, connectTitle: v}})} fontKey="vi_connectTitle" currentFont={customFonts['CustomFont_vi_connectTitle']} onFontUpload={handleFontUpload} />
-                <EditorInput label="Nút Liên hệ" value={config.vi.about.bookBtn} onChange={(v) => setConfig({...config, vi: {...config.vi, about: {...config.vi.about, bookBtn: v}}})} fontKey="bookBtn" currentFont={customFonts['CustomFont_bookBtn']} onFontUpload={handleFontUpload} />
-              </>
-            )}
-
-            {activeTab === 'en' && (
-              <>
-                <h3 className="text-xs font-bold uppercase mb-4 text-orange-600">English Content</h3>
-                <EditorInput label="Tagline" value={config.en.tagline} onChange={(v) => setConfig({...config, en: {...config.en, tagline: v}})} type="textarea" fontKey="tagline" currentFont={customFonts['CustomFont_tagline']} onFontUpload={handleFontUpload}/>
-                <EditorInput label="About Title" value={config.en.about.title} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, title: v}}})} fontKey="en_aboutTitle" currentFont={customFonts['CustomFont_en_aboutTitle']} onFontUpload={handleFontUpload} />
-                <EditorInput label="Quote" value={config.en.about.quote} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, quote: v}}})} type="textarea" fontKey="aboutQuote" currentFont={customFonts['CustomFont_aboutQuote']} onFontUpload={handleFontUpload}/>
-                <EditorInput label="Description" value={config.en.about.description} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, description: v}}})} type="textarea" fontKey="aboutDesc" currentFont={customFonts['CustomFont_aboutDesc']} onFontUpload={handleFontUpload}/>
-                
-                <EditorInput label="Tech Stack Title" value={config.en.about.techStackTitle} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, techStackTitle: v}}})} fontKey="techTitle" currentFont={customFonts['CustomFont_techTitle']} onFontUpload={handleFontUpload} />
-                <EditorArrayInput label="Tech List" items={config.en.about.techStack} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, techStack: v}}})} fontKey="techList" currentFont={customFonts['CustomFont_techList']} onFontUpload={handleFontUpload} />
-                
-                <EditorInput label="Collab Title" value={config.en.about.collabTitle} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, collabTitle: v}}})} fontKey="collabTitle" currentFont={customFonts['CustomFont_collabTitle']} onFontUpload={handleFontUpload} />
-                <EditorInput label="Collab Intro" value={config.en.about.collabIntro} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, collabIntro: v}}})} fontKey="collabIntro" currentFont={customFonts['CustomFont_collabIntro']} onFontUpload={handleFontUpload} />
-                <EditorArrayInput label="Collab List" items={config.en.about.collabList} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, collabList: v}}})} fontKey="collabList" currentFont={customFonts['CustomFont_collabList']} onFontUpload={handleFontUpload} />
-                
-                <EditorInput label="Partners Title" value={config.en.partnersTitle} onChange={(v) => setConfig({...config, en: {...config.en, partnersTitle: v}})} fontKey="en_partnersTitle" currentFont={customFonts['CustomFont_en_partnersTitle']} onFontUpload={handleFontUpload} />
-                <EditorInput label="Connect Title" value={config.en.connectTitle} onChange={(v) => setConfig({...config, en: {...config.en, connectTitle: v}})} fontKey="en_connectTitle" currentFont={customFonts['CustomFont_en_connectTitle']} onFontUpload={handleFontUpload} />
-                <EditorInput label="Book Button" value={config.en.about.bookBtn} onChange={(v) => setConfig({...config, en: {...config.en, about: {...config.en.about, bookBtn: v}}})} fontKey="bookBtn" currentFont={customFonts['CustomFont_bookBtn']} onFontUpload={handleFontUpload} />
-              </>
-            )}
-
-            {activeTab === 'albums' && (
-              <div className="space-y-6">
-                {albums.map((album, idx) => (
-                  <div key={album.id} className="bg-stone-50 p-3 rounded border border-stone-200 relative">
-                    <button onClick={() => setAlbums(albums.filter((_, i) => i !== idx))} className="absolute top-2 right-2 text-stone-300 hover:text-red-500"><Trash2 size={16}/></button>
-                    <span className="text-[9px] font-bold text-stone-400 uppercase mb-2 block">Album #{idx + 1}</span>
-                    <EditorInput label="Tiêu đề" value={album.title} onChange={(v) => { const newA = [...albums]; newA[idx].title = v; setAlbums(newA); }} fontKey={`albumTitle_${album.id}`} currentFont={customFonts[`CustomFont_albumTitle_${album.id}`]} onFontUpload={handleFontUpload} />
-                    <EditorInput label="Danh mục" value={album.category} onChange={(v) => { const newA = [...albums]; newA[idx].category = v; setAlbums(newA); }} fontKey={`albumCategory_${album.id}`} currentFont={customFonts[`CustomFont_albumCategory_${album.id}`]} onFontUpload={handleFontUpload} />
-                    <EditorInput label="Thumbnail Link" value={album.thumbnail} onChange={(v) => { const newA = [...albums]; newA[idx].thumbnail = v; setAlbums(newA); }} />
-                    <div className="p-2 bg-orange-50 rounded border border-orange-100 mt-2">
-                        <EditorInput label="Canva Embed URL" value={album.embedUrl} placeholder="Link view?embed..." onChange={(v) => { const newA = [...albums]; newA[idx].embedUrl = v; setAlbums(newA); }} />
-                        <div className="flex gap-2">
-                           <div className="w-1/2"><EditorInput label="Tỷ lệ (VD: 150%)" value={album.embedPadding} onChange={(v) => { const newA = [...albums]; newA[idx].embedPadding = v; setAlbums(newA); }} /></div>
-                           <div className="w-1/2"><EditorInput label="Title Frame" value={album.embedTitle} onChange={(v) => { const newA = [...albums]; newA[idx].embedTitle = v; setAlbums(newA); }} /></div>
-                        </div>
-                        <div className="mt-2 p-2 bg-white rounded text-[9px] text-stone-500 border border-stone-100">
-                           <p className="font-bold mb-1">ℹ️ Gợi ý Tỷ lệ (Padding):</p>
-                           <ul className="list-disc pl-4 space-y-0.5">
-                              <li>Dọc (Mobile/Poster): <b>150%</b></li>
-                              <li>Vuông: <b>100%</b></li>
-                              <li>Ngang (Slide/PC): <b>56.25%</b></li>
-                              <li>UltraWide (21:9): <b>42.85%</b></li>
-                           </ul>
-                        </div>
-                    </div>
-                  </div>
-                ))}
-                <button onClick={() => setAlbums([...albums, { id: Date.now(), title: "New Album", category: "NEW", thumbnail: "", embedUrl: "", embedPadding: "100%" }])} className="w-full py-3 border-2 border-dashed border-stone-300 text-stone-400 font-bold text-xs uppercase hover:border-orange-500 hover:text-orange-600 rounded transition-colors">+ Thêm Album</button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* MAIN UI */}
-      <div className={`transition-all duration-300 ${isEditorOpen ? 'md:pl-[450px]' : ''}`}>
-        <header className="pt-10 pb-6 px-4 text-center">
-           <div className="absolute top-6 right-6 flex items-center gap-2">
-              <button onClick={() => setLang('vi')} className={`text-[10px] font-bold px-2 py-1 rounded ${lang === 'vi' ? 'bg-orange-600 text-white' : 'text-stone-400'}`}>VI</button>
-              <div className="h-3 w-px bg-stone-300"></div>
-              <button onClick={() => setLang('en')} className={`text-[10px] font-bold px-2 py-1 rounded ${lang === 'en' ? 'bg-orange-600 text-white' : 'text-stone-400'}`}>EN</button>
-           </div>
-           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-orange-200 bg-white/60 backdrop-blur mb-6">
-             <Sparkles size={12} className="text-orange-500" />
-             <span className="text-[10px] font-bold tracking-widest text-orange-600 uppercase font-sans" style={getFontStyle('role')}>{config.common.siteName} - {config.common.role}</span>
-           </div>
-           
-           <h1 className="text-6xl md:text-7xl font-serif font-medium tracking-tight mb-3 text-orange-700" style={getFontStyle('siteName')}>{config.common.siteName}</h1>
-           <p className="text-lg md:text-xl font-serif italic text-stone-600 mb-4 font-light" style={getFontStyle('tagline')}>{content.tagline}</p>
-           <p className="text-[10px] md:text-xs font-sans font-bold tracking-[0.2em] text-orange-700 uppercase mb-8" style={getFontStyle('footerCredit')}>{config.common.footerCredit}</p>
-           
-           <div className="flex justify-center items-center gap-6 mb-4">
-             {Object.keys(config.common.socials).map(key => (
-               <SocialIcon key={key} type={key} href={config.common.socials[key]} />
-             ))}
-           </div>
-        </header>
-
-        <div className="sticky top-0 z-30 bg-stone-50/90 backdrop-blur-md border-y border-stone-200 py-3 px-4 flex flex-col md:flex-row justify-between items-center gap-4">
-           <div className="flex gap-2 overflow-x-auto w-full md:w-auto scrollbar-hide pb-2 md:pb-0">
-             {categories.map(cat => (
-               <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase whitespace-nowrap ${activeCategory === cat ? 'bg-orange-600 text-white' : 'bg-white text-stone-500 hover:text-orange-600'}`}>{cat}</button>
-             ))}
-           </div>
-           <div className="flex items-center bg-white p-1 rounded border border-stone-200">
-              {[2,3,4].map(c => <button key={c} onClick={() => setColumns(c)} className={`p-1.5 rounded ${columns === c ? 'text-orange-600 bg-orange-50' : 'text-stone-300'}`}><LayoutGrid size={16}/></button>)}
-           </div>
-        </div>
-
-        <main className="px-4 md:px-12 py-10 min-h-[60vh]">
-          {/* MASONRY GRID SYSTEM */}
-          <div className={`gap-8 space-y-8 columns-1 sm:columns-2 lg:columns-${columns}`}>
-             {visibleAlbums.map((album) => (
-               <div key={album.id} onClick={() => setSelectedAlbum(album)} className="group break-inside-avoid cursor-pointer mb-8 animate-in fade-in duration-700">
-                 <div className="overflow-hidden rounded-sm mb-3 bg-stone-200 relative">
-                   <img src={optimizeGoogleDriveLink(album.thumbnail)} alt={album.title} loading="lazy" className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"/>
-                   <div className="absolute top-2 right-2 bg-black/50 text-white text-[9px] px-2 py-1 uppercase opacity-0 group-hover:opacity-100 transition-opacity">{ui.viewProject}</div>
-                 </div>
-                 <h3 className="text-lg font-serif text-stone-900 group-hover:text-orange-700 transition-colors leading-tight" style={getFontStyle(`albumTitle_${album.id}`)}>{album.title}</h3>
-                 <p className="text-[10px] font-sans font-bold tracking-widest text-orange-600 uppercase" style={getFontStyle(`albumCategory_${album.id}`)}>{album.category}</p>
-               </div>
-             ))}
-          </div>
-          <div className="py-12 text-center text-stone-400">
-            {visibleAlbums.length === 0 && <span className="text-[10px] tracking-widest uppercase">{ui.endOf} {activeCategory}</span>}
-          </div>
-        </main>
-
-        <section className="bg-white border-t border-stone-200 py-24 px-6">
-          <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-16">
-            <div className="space-y-10">
-              <div>
-                <h2 className="text-4xl font-serif mb-6 text-stone-900" style={getFontStyle(`${lang}_aboutTitle`)}>{content.about.title}</h2>
-                <p className="text-lg text-stone-600 font-serif italic" style={getFontStyle('aboutQuote')}>{content.about.quote}</p>
-                <p className="mt-4 text-stone-500 font-serif font-light text-sm leading-relaxed" style={getFontStyle('aboutDesc')}>{content.about.description}</p>
-              </div>
-              <div>
-                <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-orange-600 mb-4" style={getFontStyle('techTitle')}><Cpu size={16}/> {content.about.techStackTitle}</h3>
-                <div className="flex flex-wrap gap-2" style={getFontStyle('techList')}>{content.about.techStack.map(tk => <span key={tk} className="px-3 py-1 bg-stone-100 text-stone-600 text-xs rounded-full border">{tk}</span>)}</div>
-              </div>
-              <div>
-                 <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-orange-600 mb-4" style={getFontStyle('collabTitle')}><Handshake size={16}/> {content.about.collabTitle}</h3>
-                 <p className="text-stone-500 font-serif font-light mb-2" style={getFontStyle('collabIntro')}>{content.about.collabIntro}</p>
-                 <ul className="list-disc list-inside text-stone-600 font-serif text-sm pl-2 space-y-1" style={getFontStyle('collabList')}>{content.about.collabList.map((c, i) => <li key={i}>{c}</li>)}</ul>
-              </div>
-            </div>
-            <div className="space-y-10">
-              <div>
-                <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-orange-600 mb-6" style={getFontStyle(`${lang}_partnersTitle`)}><Users size={16}/> {content.about.partnersTitle || content.partnersTitle}</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4" style={getFontStyle('partnersList')}>{config.common.partners.map((p, i) => (<div key={i} className="h-16 flex items-center justify-center bg-stone-50 border border-stone-100 text-center p-2 text-xs font-serif font-bold text-stone-400 uppercase">{p}</div>))}</div>
-              </div>
-              <div className="bg-stone-900 text-white p-8 rounded relative overflow-hidden">
-                <Sparkles className="absolute top-0 right-0 p-4 opacity-10" size={100}/>
-                <h3 className="text-2xl font-serif mb-6" style={getFontStyle(`${lang}_connectTitle`)}>{content.about.connectTitle || content.connectTitle}</h3>
-                <div className="space-y-4 font-serif font-light text-sm">
-                  <div className="flex items-center gap-3"><Mail size={16} className="text-orange-500"/><a href={`mailto:${config.common.contact.email}`} style={getFontStyle('contactEmail')}>{config.common.contact.email}</a></div>
-                  <div className="flex items-center gap-3"><Phone size={16} className="text-orange-500"/><span style={getFontStyle('contactPhone')}>{config.common.contact.phone}</span></div>
-                  <div className="flex items-center gap-3"><Facebook size={16} className="text-orange-500"/><a href={config.common.contact.facebookLink} target="_blank" rel="noopener noreferrer" style={getFontStyle('contactFb')}>{ui.facebookPage}</a></div>
-                </div>
-                <button className="mt-8 w-full py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs uppercase tracking-widest" style={getFontStyle('bookBtn')}>{content.about.bookBtn}</button>
-              </div>
-            </div>
-          </div>
-        </section>
-        <footer className="bg-stone-950 text-stone-500 py-12 text-center border-t border-stone-900 text-[10px] font-sans tracking-widest uppercase">
-          <p className="mb-2">© {new Date().getFullYear()} {config.common.siteName} - {ui.copyright}</p>
-          <p className="opacity-50">{ui.designedBy}</p>
-        </footer>
-      </div>
-  `;
-};
+      {/* EDITOR BUTTON - Chỉ hiện nếu isEditorOpen true hoặc để ẩn trong bản build */}
+      {/* Chúng ta giữ lại UI này nhưng trong bản tải xuống nó sẽ không hoạt động đầy đủ tính năng CMS */}
+    </div>
+  );
+}
